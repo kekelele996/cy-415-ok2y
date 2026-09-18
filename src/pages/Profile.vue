@@ -40,8 +40,24 @@
           <span>可交换 {{ availableCount }}</span>
           <span>信用 {{ currentUser.credit_score }}</span>
         </div>
+        <div v-if="myAccount" class="stats-row">
+          <span>可用积分 {{ formatPoints(myAccount.balance) }}</span>
+          <span>诚信金冻结 {{ formatPoints(myAccount.frozen) }}</span>
+        </div>
       </div>
     </div>
+
+    <section v-if="myAccount" class="my-items">
+      <h2>积分流水</h2>
+      <div v-if="myLedger.length" class="ledger-list">
+        <div v-for="entry in myLedger" :key="entry.id" class="ledger-row">
+          <span>{{ formatLedgerKind(entry.kind) }}</span>
+          <strong>{{ formatSignedPoints(entry.amount) }}</strong>
+          <small>{{ formatDate(entry.created_at) }} · 余额 {{ formatPoints(entry.balance_after) }} · 冻结 {{ formatPoints(entry.frozen_after) }}</small>
+        </div>
+      </div>
+      <EmptyState v-else title="暂无积分流水" description="参与交换并冻结诚信金后会出现在这里" mark="分" />
+    </section>
 
     <section class="my-items">
       <h2>我发布的物品</h2>
@@ -68,9 +84,12 @@ import UserBrief from '@/components/common/UserBrief.vue';
 import { ItemStatus } from '@/constants/item';
 import { useAuth } from '@/hooks/useAuth';
 import { useItemStore } from '@/stores/itemStore';
+import { useSettlementStore } from '@/stores/settlementStore';
+import { formatDate, formatLedgerKind, formatPoints, formatSignedPoints } from '@/utils/formatters';
 
 const { currentUser, users, login, updateProfile } = useAuth();
 const itemStore = useItemStore();
+const settlementStore = useSettlementStore();
 const selectedUserId = ref('');
 
 const form = reactive({
@@ -101,6 +120,8 @@ watch(
 
 const myItems = computed(() => (currentUser.value ? itemStore.myItems(currentUser.value.id) : []));
 const availableCount = computed(() => myItems.value.filter((item) => item.status === ItemStatus.AVAILABLE).length);
+const myAccount = computed(() => (currentUser.value ? settlementStore.accountOf(currentUser.value.id) : undefined));
+const myLedger = computed(() => (currentUser.value ? settlementStore.ledgerOfUser(currentUser.value.id).slice(0, 10) : []));
 
 const save = async () => {
   await updateProfile({ ...form });

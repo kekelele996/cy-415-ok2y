@@ -10,4 +10,10 @@ import { storage } from './utils/storage';
 
 void storage.cleanExpired();
 
-createApp(App).use(createPinia()).use(router).mount('#app');
+const bootstrap = async () => {
+  // 启动时先回滚未完成的结算事务，保证刷新/崩溃后回到结算前状态
+  await storage.recoverTransaction();
+  createApp(App).use(createPinia()).use(router).mount('#app');
+};
+
+void bootstrap();

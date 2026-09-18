@@ -12,6 +12,12 @@
       <span>待确认 {{ stats.pending }}</span>
       <span>已同意 {{ stats.accepted }}</span>
       <span>已完成 {{ stats.completed }}</span>
+      <span>已取消 {{ stats.cancelled }}</span>
+    </div>
+
+    <div v-if="myAccount" class="stats-row">
+      <span>我的积分：可用 {{ formatPoints(myAccount.balance) }}</span>
+      <span>诚信金冻结 {{ formatPoints(myAccount.frozen) }}</span>
     </div>
 
     <div class="segmented">
@@ -32,9 +38,12 @@
         :exchange="exchange"
         :items="itemStore.items"
         :users="authStore.users"
+        :settlement="settlementStore.settlementOf(exchange.id)"
+        :operating="exchangeStore.isOperating(exchange.id)"
         @accept="exchangeStore.accept"
         @reject="exchangeStore.reject"
-        @complete="completeExchange"
+        @complete="exchangeStore.complete"
+        @cancel="exchangeStore.cancel"
       />
     </div>
     <EmptyState
@@ -57,10 +66,13 @@ import { useExchangeStats } from '@/hooks/useExchangeStats';
 import { useAuthStore } from '@/stores/authStore';
 import { useExchangeStore } from '@/stores/exchangeStore';
 import { useItemStore } from '@/stores/itemStore';
+import { useSettlementStore } from '@/stores/settlementStore';
+import { formatPoints } from '@/utils/formatters';
 
 const authStore = useAuthStore();
 const itemStore = useItemStore();
 const exchangeStore = useExchangeStore();
+const settlementStore = useSettlementStore();
 const tab = ref<'sent' | 'received'>('sent');
 
 const mine = computed(() => {
@@ -72,11 +84,9 @@ const mine = computed(() => {
 });
 const visibleExchanges = computed(() => mine.value);
 const stats = useExchangeStats(() => exchangeStore.exchanges);
-
-const completeExchange = async (id: string) => {
-  await exchangeStore.complete(id);
-  itemStore.items = itemStore.items.map((item) => item);
-};
+const myAccount = computed(() =>
+  authStore.currentUser ? settlementStore.accountOf(authStore.currentUser.id) : undefined,
+);
 
 void ExchangeStatus.PENDING;
 </script>

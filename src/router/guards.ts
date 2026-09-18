@@ -6,12 +6,14 @@ import { LOG_MESSAGES } from '@/constants/messages';
 import { useAuthStore } from '@/stores/authStore';
 import { useExchangeStore } from '@/stores/exchangeStore';
 import { useItemStore } from '@/stores/itemStore';
+import { useSettlementStore } from '@/stores/settlementStore';
 
 export const setupRouterGuards = (router: Router) => {
   router.beforeEach(async () => {
     const authStore = useAuthStore();
     const itemStore = useItemStore();
     const exchangeStore = useExchangeStore();
+    const settlementStore = useSettlementStore();
     if (!authStore.currentUser) {
       await authStore.hydrate();
     }
@@ -21,11 +23,15 @@ export const setupRouterGuards = (router: Router) => {
     if (!exchangeStore.exchanges.length) {
       await exchangeStore.hydrate();
     }
+    if (!settlementStore.accounts.length) {
+      await settlementStore.hydrate();
+    }
 
     const statusProbe = itemStore.items.some((item) => item.status === ItemStatus.AVAILABLE);
     const exchangeProbe = exchangeStore.exchanges.some((item) => item.status === ExchangeStatus.PENDING);
     if (import.meta.env.DEV && (statusProbe || exchangeProbe)) {
       console.debug(LOG_MESSAGES.storageHydrated);
+      console.debug(LOG_MESSAGES.settlementUsed);
     }
     return true;
   });

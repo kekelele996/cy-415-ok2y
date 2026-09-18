@@ -594,6 +594,38 @@ textarea {
   gap: 8px;
 }
 
+.exchange-card__actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  transform: none;
+}
+
+.exchange-card__settlement {
+  border-radius: 7px;
+  background: color-mix(in oklch, var(--rs-accent), transparent 88%);
+  padding: 10px 12px;
+  font-size: 0.86rem;
+}
+
+.ledger-list {
+  display: grid;
+  gap: 10px;
+}
+
+.ledger-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 12px;
+  border: 1px solid var(--rs-border);
+  border-radius: 7px;
+  padding: 12px 14px;
+}
+
+.ledger-row small {
+  grid-column: 1 / -1;
+  color: color-mix(in oklch, var(--rs-text), transparent 42%);
+}
+
 .profile-side {
   display: grid;
   gap: 18px;

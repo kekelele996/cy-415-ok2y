@@ -14,17 +14,23 @@ const seedExchanges: Exchange[] = [
     to_item_id: 'item_camera',
     status: ExchangeStatus.PENDING,
     message: '露营椅换拍立得，可以同城当面交换。',
+    confirmations: [],
     created_at: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
     updated_at: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
   },
 ];
 
+const normalize = (exchange: Exchange): Exchange => ({
+  ...exchange,
+  confirmations: exchange.confirmations ?? [],
+});
+
 export const exchangeApi = {
   async list(): Promise<Exchange[]> {
     const exchanges = await storage.get<Exchange[]>(STORAGE_KEYS.exchanges, []);
-    if (exchanges.length) return exchanges;
+    if (exchanges.length) return exchanges.map(normalize);
     await storage.set(STORAGE_KEYS.exchanges, seedExchanges);
-    return seedExchanges;
+    return seedExchanges.map(normalize);
   },
 
   async create(draft: ExchangeDraft): Promise<Exchange> {
@@ -37,6 +43,7 @@ export const exchangeApi = {
       ...draft,
       id: storage.createId('exchange'),
       status: draft.status ?? ExchangeStatus.PENDING,
+      confirmations: [],
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };

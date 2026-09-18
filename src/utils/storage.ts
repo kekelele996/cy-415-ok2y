@@ -12,9 +12,24 @@ export const STORAGE_KEYS = {
   users: prefixed('users'),
   items: prefixed('items'),
   exchanges: prefixed('exchanges'),
+  accounts: prefixed('accounts'),
+  ledger: prefixed('ledger'),
+  settlements: prefixed('settlements'),
+  journal: prefixed('settlement-journal'),
   theme: prefixed('theme'),
   lastClean: prefixed('last-clean'),
 };
+
+export interface TransactionOperation<T = unknown> {
+  key: string;
+  value: T;
+}
+
+interface TransactionJournal {
+  id: string;
+  created_at: string;
+  snapshots: Record<string, string | null>;
+}
 
 const now = () => Date.now();
 
@@ -44,6 +59,16 @@ const parseLocal = <T>(key: string): PersistedEnvelope<T> | null => {
 
 const writeLocal = <T>(key: string, payload: T, ttl?: number) => {
   localStorage.setItem(key, JSON.stringify(envelope(payload, ttl)));
+};
+
+const restoreSnapshot = async (key: string, raw: string | null) => {
+  if (raw === null) {
+    localStorage.removeItem(key);
+    await del(key);
+    return;
+  }
+  localStorage.setItem(key, raw);
+  await set(key, JSON.parse(raw));
 };
 
 export const storage = {
@@ -80,6 +105,45 @@ export const storage = {
   async remove(key: string): Promise<void> {
     localStorage.removeItem(key);
     await del(key);
+  },
+
+  async runTransaction(operations: TransactionOperation[]): Promise<void> {
+    if (!operations.length) return;
+    const snapshots: Record<string, string | null> = {};
+    for (const operation of operations) {
+      snapshots[operation.key] = localStorage.getItem(operation.key);
+    }
+    const journal: TransactionJournal = {
+      id: this.createId('tx'),
+      created_at: new Date().toISOString(),
+      snapshots,
+    };
+    localStorage.setItem(STORAGE_KEYS.journal, JSON.stringify(envelope(journal)));
+    try {
+      for (const operation of operations) {
+        await this.set(operation.key, operation.value);
+      }
+    } catch (error) {
+      for (const [key, raw] of Object.entries(snapshots)) {
+        await restoreSnapshot(key, raw);
+      }
+      localStorage.removeItem(STORAGE_KEYS.journal);
+      await del(STORAGE_KEYS.journal);
+      throw error;
+    }
+    localStorage.removeItem(STORAGE_KEYS.journal);
+    await del(STORAGE_KEYS.journal);
+  },
+
+  async recoverTransaction(): Promise<boolean> {
+    const packed = parseLocal<TransactionJournal>(STORAGE_KEYS.journal);
+    if (!packed) return false;
+    for (const [key, raw] of Object.entries(packed.payload.snapshots)) {
+      await restoreSnapshot(key, raw);
+    }
+    localStorage.removeItem(STORAGE_KEYS.journal);
+    await del(STORAGE_KEYS.journal);
+    return true;
   },
 
   async cleanExpired(): Promise<void> {

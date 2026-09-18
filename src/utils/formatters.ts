@@ -3,6 +3,7 @@ import dayjs from 'dayjs';
 import { ExchangeStatus } from '@/constants/exchange';
 import { ItemCondition, ItemStatus } from '@/constants/item';
 import { STATUS_MESSAGE_MAP } from '@/constants/messages';
+import { LedgerKind, SettlementStatus } from '@/constants/settlement';
 
 export const formatDate = (date: string) => dayjs(date).format('YYYY-MM-DD HH:mm');
 
@@ -21,9 +22,33 @@ export const formatExchangeStatus = (status: ExchangeStatus) => {
     [ExchangeStatus.ACCEPTED]: '已同意',
     [ExchangeStatus.REJECTED]: '已拒绝',
     [ExchangeStatus.COMPLETED]: '已完成',
+    [ExchangeStatus.CANCELLED]: '已取消',
   };
   return map[status];
 };
+
+export const formatSettlementStatus = (status: SettlementStatus) => {
+  const map: Record<SettlementStatus, string> = {
+    [SettlementStatus.FROZEN]: '冻结中',
+    [SettlementStatus.RELEASED]: '已解冻',
+    [SettlementStatus.COMPENSATED]: '已赔付',
+  };
+  return map[status];
+};
+
+export const formatLedgerKind = (kind: LedgerKind) => {
+  const map: Record<LedgerKind, string> = {
+    [LedgerKind.FREEZE]: '诚信金冻结',
+    [LedgerKind.UNFREEZE]: '诚信金解冻',
+    [LedgerKind.COMPENSATION_IN]: '取消赔付入账',
+    [LedgerKind.COMPENSATION_OUT]: '取消赔付支出',
+  };
+  return map[kind];
+};
+
+export const formatPoints = (points: number) => `${points} 点`;
+
+export const formatSignedPoints = (points: number) => `${points > 0 ? '+' : ''}${points} 点`;
 
 export const formatCondition = (condition: ItemCondition) => {
   const map: Record<ItemCondition, string> = {
@@ -44,7 +69,8 @@ export const formatCreditLevel = (score: number) => {
 
 export const statusToneClass = (status: ItemStatus | ExchangeStatus) => {
   if (status === ItemStatus.AVAILABLE || status === ExchangeStatus.ACCEPTED) return 'status-good';
-  if (status === ItemStatus.OFFLINE || status === ExchangeStatus.REJECTED) return 'status-muted';
+  if (status === ItemStatus.OFFLINE || status === ExchangeStatus.REJECTED || status === ExchangeStatus.CANCELLED)
+    return 'status-muted';
   if (status === ItemStatus.EXCHANGED || status === ExchangeStatus.COMPLETED) return 'status-done';
   return 'status-wait';
 };
